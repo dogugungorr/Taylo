@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sahil Koşusu: Kültür ve Eğlence Avı</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Fredoka for playful cartoon look) -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Fredoka', cursive, sans-serif;
+            background-color: #87CEEB;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #87CEEB 0%, #B0E0E6 50%, #F0E68C 85%, #E6C280 100%);
+        }
+        .pixel-shadow {
+            text-shadow: 2px 2px 0px #000;
+        }
+        .card-bg {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-center items-center m-0 p-0 overflow-hidden select-none bg-sky-200">
+
+    <!-- Game Container -->
+    <div id="gameContainer" class="relative w-full h-full max-w-5xl max-h-[700px] md:rounded-3xl shadow-2xl overflow-hidden border-4 border-slate-800 bg-sky-300 flex flex-col">
+        
+        <!-- Canvas Layer -->
+        <canvas id="gameCanvas" class="w-full h-full flex-1"></canvas>
+
+        <!-- Top HUD Overlay -->
+        <div id="hud" class="absolute top-0 left-0 w-full p-4 flex justify-between items-center pointer-events-none z-10 hidden">
+            <!-- Health / Lives -->
+            <div class="flex items-center space-x-1 bg-white/80 backdrop-blur border-2 border-slate-800 px-3 py-1.5 rounded-full shadow-md">
+                <span class="text-xs font-bold text-slate-700 mr-1">CAN:</span>
+                <div id="livesContainer" class="flex space-x-1 text-red-500 text-lg">
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+            </div>
+
+            <!-- Stats & Items Collected -->
+            <div class="flex items-center space-x-3 bg-white/80 backdrop-blur border-2 border-slate-800 px-4 py-1.5 rounded-full shadow-md">
+                <div class="flex items-center space-x-1 text-amber-700 font-bold text-sm">
+                    <span>📚</span> <span id="countBook">0</span>
+                </div>
+                <div class="flex items-center space-x-1 text-purple-700 font-bold text-sm">
+                    <span>🎴</span> <span id="countCard">0</span>
+                </div>
+                <div class="flex items-center space-x-1 text-rose-600 font-bold text-sm">
+                    <span>🎬</span> <span id="countMovie">0</span>
+                </div>
+                <div class="flex items-center space-x-1 text-emerald-600 font-bold text-sm">
+                    <span>🥤</span> <span id="countCoffee">0</span>
+                </div>
+            </div>
+
+            <!-- Score & Mute -->
+            <div class="flex items-center space-x-2">
+                <div class="bg-amber-400 border-2 border-slate-800 px-4 py-1.5 rounded-full shadow-md font-extrabold text-slate-900 text-lg">
+                    PUAN: <span id="scoreText">0</span>
+                </div>
+                <button id="muteBtn" class="pointer-events-auto bg-white border-2 border-slate-800 w-10 h-10 rounded-full flex justify-center items-center text-slate-800 shadow-md hover:bg-slate-100 transition active:scale-95">
+                    <i id="muteIcon" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Start Screen Overlay -->
+        <div id="startScreen" class="absolute inset-0 bg-sky-900/60 backdrop-blur-sm flex flex-col justify-center items-center p-6 text-center z-20">
+            <div class="card-bg border-4 border-slate-800 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl animate-bounce-short">
+                <div class="inline-block bg-emerald-400 text-slate-900 px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase border-2 border-slate-800 mb-2">
+                    2D Sahil Macerası
+                </div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-slate-800 mb-2 leading-tight">
+                    Sahil Koşusu 🏖️
+                </h1>
+                <p class="text-slate-600 font-medium mb-4 text-sm md:text-base">
+                    Sahi̇lde engellerden kaç! Kitap, oyun kartı, film ve kahveleri toplayarak en yüksek puanı yap!
+                </p>
+
+                <!-- Legend of Items -->
+                <div class="grid grid-cols-2 gap-2 text-xs font-bold text-slate-700 bg-amber-50 p-3 rounded-xl border-2 border-amber-200 mb-6 text-left">
+                    <div class="flex items-center space-x-2"><span>📚 Kitap:</span> <span class="text-emerald-600">+10 Puan</span></div>
+                    <div class="flex items-center space-x-2"><span>🎴 Kart:</span> <span class="text-emerald-600">+15 Puan</span></div>
+                    <div class="flex items-center space-x-2"><span>🎬 Film:</span> <span class="text-emerald-600">+20 Puan</span></div>
+                    <div class="flex items-center space-x-2"><span>🥤 Kahve:</span> <span class="text-emerald-600">+25 Puan</span></div>
+                </div>
+
+                <!-- Controls Info -->
+                <div class="bg-sky-100 border-2 border-sky-300 rounded-xl p-3 mb-6 text-xs text-sky-900 text-left font-semibold">
+                    <p class="mb-1">🎮 <b>KONTROLLER:</b></p>
+                    <p>• <b>Zıplama:</b> [Space] / [Yukarı Ok] veya Ekrana Tıkla</p>
+                    <p>• <b>Eğilme:</b> [Aşağı Ok]</p>
+                </div>
+
+                <button id="startBtn" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white border-4 border-slate-800 font-extrabold text-xl py-3 rounded-2xl shadow-lg transition transform">
+                    OYUNA BAŞLA 🚀
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen Overlay -->
+        <div id="gameOverScreen" class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm flex flex-col justify-center items-center p-6 text-center z-20 hidden">
+            <div class="card-bg border-4 border-slate-800 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl">
+                <div class="w-16 h-16 bg-red-100 border-2 border-red-500 rounded-full flex items-center justify-center text-red-500 text-3xl mx-auto mb-3">
+                    💔
+                </div>
+                <h2 class="text-3xl font-extrabold text-slate-800 mb-1">Oyun Bitti!</h2>
+                <p class="text-slate-500 text-sm mb-4">Engellere takıldın ama harika bir koşuydu!</p>
+
+                <!-- Score Board -->
+                <div class="bg-amber-100 border-2 border-amber-300 p-4 rounded-2xl mb-5 space-y-2">
+                    <div class="flex justify-between items-center text-slate-700 font-bold text-lg">
+                        <span>Toplanan Puan:</span>
+                        <span id="finalScore" class="text-2xl font-black text-amber-600">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-600 font-semibold text-sm border-t border-amber-200 pt-2">
+                        <span>En Yüksek Puan:</span>
+                        <span id="highScoreText" class="text-amber-800 font-bold">0</span>
+                    </div>
+                </div>
+
+                <button id="restartBtn" class="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-900 border-4 border-slate-800 font-extrabold text-xl py-3 rounded-2xl shadow-lg transition transform mb-2">
+                    TEKRAR OYNA 🔄
+                </button>
+            </div>
+        </div>
+
+        <!-- Touch Mobile Controls Overlay (Visible on Touch devices) -->
+        <div id="touchControls" class="absolute bottom-4 right-4 flex space-x-3 z-10 md:hidden hidden">
+            <button id="btnDuck" class="w-16 h-16 bg-slate-800/80 active:bg-slate-900 text-white rounded-full border-2 border-white text-xl flex justify-center items-center shadow-lg active:scale-90 transition">
+                👇
+            </button>
+            <button id="btnJump" class="w-16 h-16 bg-emerald-500 active:bg-emerald-600 text-white rounded-full border-2 border-white text-xl flex justify-center items-center shadow-lg active:scale-90 transition">
+                🦘
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Game Logic -->
+    <script>
+        // Web Audio API Sound Generator
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playJump() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+
+            playCollect() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.08); // E5
+                osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.16); // G5
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            playHit() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+        }
+
+        const sound = new SoundFX();
+
+        // Game Variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let isPlaying = false;
+        let animationFrameId = null;
+        let score = 0;
+        let lives = 3;
+        let gameSpeed = 5;
+        let frameCount = 0;
+
+        // Stats
+        let collected = {
+            book: 0,
+            card: 0,
+            movie: 0,
+            coffee: 0
+        };
+
+        // High Score
+        let highScore = parseInt(localStorage.getItem('sahil_kosusu_highscore') || '0');
+
+        <!-- Resize Canvas handling -->
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Player Character Object
+        const player = {
+            x: 80,
+            y: 0,
+            width: 55,
+            height: 85,
+            baseHeight: 85,
+            duckHeight: 50,
+            vy: 0,
+            gravity: 0.65,
+            jumpStrength: -13.5,
+            isGrounded: false,
+            isDucking: false,
+            animTimer: 0,
+            
+            reset() {
+                this.x = Math.min(80, canvas.width * 0.15);
+                this.height = this.baseHeight;
+                this.y = canvas.height - 100 - this.height;
+                this.vy = 0;
+                this.isGrounded = true;
+                this.isDucking = false;
+            },
+
+            jump() {
+                if (this.isGrounded && !this.isDucking) {
+                    this.vy = this.jumpStrength;
+                    this.isGrounded = false;
+                    sound.playJump();
+                }
+            },
+
+            duck(enable) {
+                if (enable && this.isGrounded) {
+                    this.isDucking = true;
+                    this.height = this.duckHeight;
+                } else if (!enable) {
+                    this.isDucking = false;
+                    this.height = this.baseHeight;
+                }
+            },
+
+            update() {
+                // Apply Gravity
+                this.vy += this.gravity;
+                this.y += this.vy;
+
+                const groundY = canvas.height - 90;
+                if (this.y + this.height >= groundY) {
+                    this.y = groundY - this.height;
+                    this.vy = 0;
+                    this.isGrounded = true;
+                }
+
+                this.animTimer += 0.15;
+            },
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                const duckOffset = this.isDucking ? 20 : 0;
+
+                // 1. Purple Octopus Tentacle Buddy Behind Character
+                ctx.beginPath();
+                ctx.strokeStyle = '#8B5CF6'; // Purple
+                ctx.lineWidth = 14;
+                ctx.lineCap = 'round';
+                
+                const tentacleWiggle = Math.sin(this.animTimer * 2) * 8;
+                ctx.moveTo(-10, 20 + duckOffset);
+                ctx.quadraticCurveTo(-35 + tentacleWiggle, -20, -15 + tentacleWiggle, -35);
+                ctx.stroke();
+
+                // Tentacle Suckers (Green circles)
+                ctx.fillStyle = '#10B981';
+                ctx.beginPath();
+                ctx.arc(-26 + tentacleWiggle, -10, 4, 0, Math.PI * 2);
+                ctx.arc(-20 + tentacleWiggle, -26, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 2. Character Body / Torso (Brown Shirt)
+                ctx.fillStyle = '#78350F';
+                ctx.beginPath();
+                ctx.roundRect(5, 30 + duckOffset, this.width - 10, this.height - 45, 8);
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Sleeves / Arms (Yellow)
+                ctx.fillStyle = '#F59E0B';
+                ctx.beginPath();
+                ctx.roundRect(-2, 35 + duckOffset, 14, 25, 5);
+                ctx.fill();
+                ctx.stroke();
+
+                // 3. Legs / Pants (Gray)
+                if (!this.isDucking) {
+                    const legOffset = Math.sin(this.animTimer * 3) * 6;
+                    ctx.fillStyle = '#4B5563';
+                    // Left leg
+                    ctx.fillRect(10, this.height - 25, 14, 20 + legOffset);
+                    ctx.strokeRect(10, this.height - 25, 14, 20 + legOffset);
+                    // Right leg
+                    ctx.fillRect(30, this.height - 25, 14, 20 - legOffset);
+                    ctx.strokeRect(30, this.height - 25, 14, 20 - legOffset);
+
+                    // Shoes (Dark Brown Sneakers)
+                    ctx.fillStyle = '#374151';
+                    ctx.fillRect(6, this.height - 8 + legOffset, 18, 8);
+                    ctx.fillRect(28, this.height - 8 - legOffset, 18, 8);
+                } else {
+                    // Slide position legs
+                    ctx.fillStyle = '#4B5563';
+                    ctx.fillRect(-10, this.height - 15, 35, 12);
+                    ctx.strokeRect(-10, this.height - 15, 35, 12);
+                }
+
+                // 4. Head
+                ctx.fillStyle = '#FDBA74'; // Skin tone
+                ctx.beginPath();
+                ctx.arc(this.width / 2 + 2, 20 + duckOffset, 18, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Glasses / Eyes
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(this.width / 2 + 8, 18 + duckOffset, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Mustache / Teeth detail
+                ctx.fillRect(this.width / 2 + 4, 24 + duckOffset, 6, 2);
+
+                // Green Cap
+                ctx.fillStyle = '#10B981';
+                ctx.beginPath();
+                ctx.arc(this.width / 2 + 2, 16 + duckOffset, 19, Math.PI, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                // Cap Visor
+                ctx.fillRect(this.width / 2 + 2, 14 + duckOffset, 16, 5);
+
+                // Small Bird on Shoulder
+                ctx.fillStyle = '#FBBF24'; // Yellow bird
+                ctx.beginPath();
+                ctx.arc(0, 32 + duckOffset, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        };
+
+        // Obstacles & Collectibles arrays
+        let obstacles = [];
+        let collectibles = [];
+        let floatingDecorations = [];
+
+        // Spawn Timers
+        let obstacleTimer = 0;
+        let collectibleTimer = 0;
+
+        // Class Obstacle
+        class Obstacle {
+            constructor() {
+                this.x = canvas.width + 50;
+                // Types: 'shark' (requires jump), 'snail' (low), 'tentacle' (high - requires duck)
+                const rand = Math.random();
+                if (rand < 0.45) {
+                    this.type = 'shark';
+                    this.width = 50;
+                    this.height = 50;
+                    this.y = canvas.height - 90 - this.height;
+                } else if (rand < 0.75) {
+                    this.type = 'snail';
+                    this.width = 40;
+                    this.height = 35;
+                    this.y = canvas.height - 90 - this.height;
+                } else {
+                    this.type = 'tentacle';
+                    this.width = 45;
+                    this.height = 75;
+                    this.y = canvas.height - 200; // Floating overhead - slide under
+                }
+                this.markedForDeletion = false;
+            }
+
+            update() {
+                this.x -= gameSpeed;
+                if (this.x + this.width < -50) this.markedForDeletion = true;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                if (this.type === 'shark') {
+                    // Blue Shark
+                    ctx.fillStyle = '#0284C7';
+                    ctx.beginPath();
+                    ctx.moveTo(0, this.height);
+                    ctx.lineTo(this.width / 2, 0);
+                    ctx.lineTo(this.width, this.height);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Shark Eye & Teeth
+                    ctx.fillStyle = '#FFF';
+                    ctx.beginPath();
+                    ctx.arc(this.width / 2 + 4, 18, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(this.width / 2 + 5, 18, 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Water splash below
+                    ctx.fillStyle = '#E0F2FE';
+                    ctx.fillRect(-5, this.height - 8, this.width + 10, 8);
+
+                } else if (this.type === 'snail') {
+                    // Snail Shell
+                    ctx.fillStyle = '#D97706';
+                    ctx.beginPath();
+                    ctx.arc(18, 18, 16, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Body
+                    ctx.fillStyle = '#FCD34D';
+                    ctx.fillRect(0, this.height - 12, this.width, 12);
+                    ctx.strokeRect(0, this.height - 12, this.width, 12);
+
+                } else if (this.type === 'tentacle') {
+                    // Overhead Purple Obstacle
+                    ctx.fillStyle = '#7C3AED';
+                    ctx.beginPath();
+                    ctx.roundRect(10, 0, 25, this.height, 10);
+                    ctx.fill();
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Green Suckers
+                    ctx.fillStyle = '#10B981';
+                    ctx.beginPath();
+                    ctx.arc(22, 20, 6, 0, Math.PI * 2);
+                    ctx.arc(22, 55, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Class Collectible
+        class Collectible {
+            constructor() {
+                this.x = canvas.width + 40;
+                const types = ['book', 'card', 'movie', 'coffee'];
+                this.type = types[Math.floor(Math.random() * types.length)];
+                this.width = 35;
+                this.height = 35;
+
+                // Random height (ground level or air height)
+                const inAir = Math.random() > 0.4;
+                this.y = inAir ? canvas.height - 180 : canvas.height - 130;
+
+                this.bobbleTimer = Math.random() * 10;
+                this.markedForDeletion = false;
+            }
+
+            update() {
+                this.x -= gameSpeed;
+                this.bobbleTimer += 0.08;
+                if (this.x + this.width < -40) this.markedForDeletion = true;
+            }
+
+            draw() {
+                ctx.save();
+                const bobY = Math.sin(this.bobbleTimer) * 5;
+                ctx.translate(this.x, this.y + bobY);
+
+                if (this.type === 'book') {
+                    // Red Book
+                    ctx.fillStyle = '#EF4444';
+                    ctx.fillRect(0, 0, 32, 38);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeRect(0, 0, 32, 38);
+
+                    // Book Pages
+                    ctx.fillStyle = '#FFF';
+                    ctx.fillRect(24, 3, 6, 32);
+
+                } else if (this.type === 'card') {
+                    // Purple Game / Playing Cards
+                    ctx.fillStyle = '#8B5CF6';
+                    ctx.fillRect(0, 0, 34, 34);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeRect(0, 0, 34, 34);
+
+                    // Icon inside
+                    ctx.fillStyle = '#F59E0B';
+                    ctx.beginPath();
+                    ctx.arc(17, 17, 7, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (this.type === 'movie') {
+                    // Film Clapperboard
+                    ctx.fillStyle = '#1E293B';
+                    ctx.fillRect(0, 0, 36, 30);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeRect(0, 0, 36, 30);
+
+                    // Stripes
+                    ctx.fillStyle = '#FFF';
+                    ctx.fillRect(4, 3, 8, 8);
+                    ctx.fillRect(20, 3, 8, 8);
+
+                } else if (this.type === 'coffee') {
+                    // Green Starbucks-style Cup
+                    ctx.fillStyle = '#E2E8F0';
+                    ctx.beginPath();
+                    ctx.moveTo(4, 6);
+                    ctx.lineTo(28, 6);
+                    ctx.lineTo(24, 36);
+                    ctx.lineTo(8, 36);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
+
+                    // Green Logo
+                    ctx.fillStyle = '#059669';
+                    ctx.beginPath();
+                    ctx.arc(16, 22, 6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Green Straw
+                    ctx.strokeStyle = '#10B981';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(16, 6);
+                    ctx.lineTo(22, -6);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Floating Monstera Leaves & Clouds for Aesthetics
+        class BackgroundItem {
+            constructor() {
+                this.x = canvas.width + 100;
+                this.y = Math.random() * (canvas.height * 0.4) + 20;
+                this.speed = (Math.random() * 0.5 + 0.5);
+                this.size = Math.random() * 30 + 40;
+                this.type = Math.random() > 0.5 ? 'cloud' : 'star';
+            }
+
+            update() {
+                this.x -= this.speed;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                if (this.type === 'cloud') {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size * 0.4, 0, Math.PI * 2);
+                    ctx.arc(this.size * 0.3, -10, this.size * 0.35, 0, Math.PI * 2);
+                    ctx.arc(this.size * 0.6, 0, this.size * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Star
+                    ctx.fillStyle = '#FBBF24';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        // Draw Scenery (Beach, Ocean, Road)
+        function drawBackground() {
+            // Sky is handled by Canvas CSS gradient
+
+            // Draw Background Decor
+            floatingDecorations.forEach((item, index) => {
+                item.update();
+                item.draw();
+                if (item.x < -100) floatingDecorations.splice(index, 1);
+            });
+
+            if (frameCount % 120 === 0) {
+                floatingDecorations.push(new BackgroundItem());
+            }
+
+            // Distant Ocean Wave Strip
+            ctx.fillStyle = '#38BDF8';
+            ctx.fillRect(0, canvas.height - 130, canvas.width, 40);
+
+            // Ocean Foam
+            ctx.fillStyle = '#E0F2FE';
+            ctx.beginPath();
+            for (let i = 0; i < canvas.width; i += 40) {
+                ctx.arc(i + 20, canvas.height - 130, 8, 0, Math.PI);
+            }
+            ctx.fill();
+
+            // Sand Beach Floor
+            ctx.fillStyle = '#FDE047';
+            ctx.fillRect(0, canvas.height - 90, canvas.width, 90);
+
+            // Sand Texture Dots
+            ctx.fillStyle = '#CA8A04';
+            for (let i = 0; i < canvas.width; i += 60) {
+                const sandX = (i - (frameCount * gameSpeed) % 60);
+                ctx.fillRect(sandX, canvas.height - 60, 4, 4);
+                ctx.fillRect(sandX + 25, canvas.height - 30, 6, 4);
+            }
+
+            // Beach Road Line
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - 90);
+            ctx.lineTo(canvas.width, canvas.height - 90);
+            ctx.stroke();
+        }
+
+        // AABB Collision Detection
+        function checkCollision(rect1, rect2) {
+            return (
+                rect1.x < rect2.x + rect2.width &&
+                rect1.x + rect1.width > rect2.x &&
+                rect1.y < rect2.y + rect2.height &&
+                rect1.y + rect1.height > rect2.y
+            );
+        }
+
+        // Update Hearts Display
+        function updateLivesUI() {
+            const container = document.getElementById('livesContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                if (i < lives) {
+                    container.innerHTML += `<i class="fa-solid fa-heart"></i>`;
+                } else {
+                    container.innerHTML += `<i class="fa-regular fa-heart text-slate-400"></i>`;
+                }
+            }
+        }
+
+        // Spawn Spacing Manager
+        function handleSpawns() {
+            obstacleTimer++;
+            collectibleTimer++;
+
+            // Spawn Obstacles
+            if (obstacleTimer > 100 + Math.random() * 80) {
+                obstacles.push(new Obstacle());
+                obstacleTimer = 0;
+            }
+
+            // Spawn Collectibles
+            if (collectibleTimer > 70 + Math.random() * 50) {
+                collectibles.push(new Collectible());
+                collectibleTimer = 0;
+            }
+        }
+
+        // Main Game Loop
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            frameCount++;
+            gameSpeed = 5.5 + Math.floor(score / 150) * 0.5; // Slowly increase speed
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw Environment
+            drawBackground();
+
+            // 2. Player Logic
+            player.update();
+            player.draw();
+
+            // 3. Spawns
+            handleSpawns();
+
+            // 4. Update & Draw Collectibles
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                const item = collectibles[i];
+                item.update();
+                item.draw();
+
+                // Player Pick Up
+                if (checkCollision(player, item)) {
+                    sound.playCollect();
+                    if (item.type === 'book') { score += 10; collected.book++; }
+                    if (item.type === 'card') { score += 15; collected.card++; }
+                    if (item.type === 'movie') { score += 20; collected.movie++; }
+                    if (item.type === 'coffee') { score += 25; collected.coffee++; }
+
+                    // Update UI Counters
+                    document.getElementById('scoreText').innerText = score;
+                    document.getElementById('countBook').innerText = collected.book;
+                    document.getElementById('countCard').innerText = collected.card;
+                    document.getElementById('countMovie').innerText = collected.movie;
+                    document.getElementById('countCoffee').innerText = collected.coffee;
+
+                    collectibles.splice(i, 1);
+                } else if (item.markedForDeletion) {
+                    collectibles.splice(i, 1);
+                }
+            }
+
+            // 5. Update & Draw Obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.update();
+                obs.draw();
+
+                // Hit Detection
+                if (checkCollision(player, obs)) {
+                    sound.playHit();
+                    lives--;
+                    updateLivesUI();
+                    obstacles.splice(i, 1);
+
+                    if (lives <= 0) {
+                        endGame();
+                        return;
+                    }
+                } else if (obs.markedForDeletion) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // Start / Reset Game
+        function startGame() {
+            sound.init();
+            isPlaying = true;
+            score = 0;
+            lives = 3;
+            gameSpeed = 5.5;
+            frameCount = 0;
+            obstacleTimer = 0;
+            collectibleTimer = 0;
+
+            collected = { book: 0, card: 0, movie: 0, coffee: 0 };
+
+            obstacles = [];
+            collectibles = [];
+            floatingDecorations = [];
+
+            // UI Resets
+            document.getElementById('scoreText').innerText = '0';
+            document.getElementById('countBook').innerText = '0';
+            document.getElementById('countCard').innerText = '0';
+            document.getElementById('countMovie').innerText = '0';
+            document.getElementById('countCoffee').innerText = '0';
+            updateLivesUI();
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('touchControls').classList.remove('hidden');
+
+            player.reset();
+            cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        }
+
+        // End Game
+        function endGame() {
+            isPlaying = false;
+            cancelAnimationFrame(animationFrameId);
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('sahil_kosusu_highscore', highScore.toString());
+            }
+
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('highScoreText').innerText = highScore;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+
+        // Keyboard Input Listeners
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                if (!isPlaying && !document.getElementById('startScreen').classList.contains('hidden')) {
+                    startGame();
+                } else {
+                    player.jump();
+                }
+                e.preventDefault();
+            }
+            if (e.code === 'ArrowDown') {
+                player.duck(true);
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowDown') {
+                player.duck(false);
+            }
+        });
+
+        // Touch & Click Controls for Canvas / Screen
+        canvas.addEventListener('touchstart', (e) => {
+            if (isPlaying) {
+                player.jump();
+            }
+        });
+
+        canvas.addEventListener('mousedown', () => {
+            if (isPlaying) player.jump();
+        });
+
+        // Mobile Buttons
+        const btnJump = document.getElementById('btnJump');
+        const btnDuck = document.getElementById('btnDuck');
+
+        btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); player.jump(); });
+        btnDuck.addEventListener('touchstart', (e) => { e.preventDefault(); player.duck(true); });
+        btnDuck.addEventListener('touchend', (e) => { e.preventDefault(); player.duck(false); });
+
+        btnJump.addEventListener('mousedown', () => player.jump());
+        btnDuck.addEventListener('mousedown', () => player.duck(true));
+        btnDuck.addEventListener('mouseup', () => player.duck(false));
+
+        // Start & Restart Buttons
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('restartBtn').addEventListener('click', startGame);
+
+        // Mute Sound Toggle Button
+        document.getElementById('muteBtn').addEventListener('click', () => {
+            sound.muted = !sound.muted;
+            const icon = document.getElementById('muteIcon');
+            if (sound.muted) {
+                icon.className = 'fa-solid fa-volume-xmark text-red-500';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-slate-800';
+            }
+        });
+    </script>
+</body>
+</html>
